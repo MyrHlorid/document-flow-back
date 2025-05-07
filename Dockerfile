@@ -21,8 +21,6 @@ RUN npm ci --include=dev
 # Copy application code
 COPY --link . ./
 
-# Copy the .env file if it's present
-COPY .env ./
 
 RUN npm run build
 
