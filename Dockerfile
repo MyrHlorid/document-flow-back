@@ -1,69 +1,42 @@
-# ---- Стадия установки зависимостей для сборки (Builder Dependencies) ----
-FROM node:18-alpine AS deps
-# Используйте более конкретную версию Node.js, если это необходимо, например node:18.17.0-alpine
-WORKDIR /usr/src/app
+# syntax = docker/dockerfile:1
 
-# Копируем package.json и package-lock.json (или yarn.lock)
-COPY package*.json ./
-# Если вы используете yarn, раскомментируйте следующую строку и закомментируйте npm ci
-# COPY yarn.lock ./
+# Adjust NODE_VERSION as desired
+ARG NODE_VERSION=18.12.1
+FROM node:${NODE_VERSION}-slim as base
 
-# Устанавливаем ВСЕ зависимости (включая devDependencies, необходимые для сборки)
-RUN npm ci
-# Если вы используете yarn:
-# RUN yarn install --frozen-lockfile
 
-# ---- Стадия сборки (Builder) ----
-FROM node:18-alpine AS builder
-WORKDIR /usr/src/app
+LABEL fly_launch_runtime="NestJS"
 
-# Копируем все зависимости (включая devDependencies) из предыдущей стадии
-COPY --from=deps /usr/src/app/node_modules ./node_modules
-# Копируем исходный код
-COPY . .
+# NestJS app lives here
+WORKDIR /src
 
-# Собираем приложение
-# Убедитесь, что у вас есть скрипт "build" в package.json (обычно "nest build")
-RUN npm run build
-# RUN npx nest build # Альтернативный вариант, если нет скрипта
-
-# ---- Стадия установки производственных зависимостей (Production Dependencies) ----
-# Эта стадия нужна, чтобы в финальном образе были только производственные зависимости.
-FROM node:18-alpine AS prod-deps
-WORKDIR /usr/src/app
-
-COPY package*.json ./
-# Если вы используете yarn:
-# COPY yarn.lock ./
-
-# Устанавливаем ТОЛЬКО производственные зависимости
-RUN npm ci --omit=dev
-# Если вы используете yarn:
-# RUN yarn install --frozen-lockfile --production
-
-# ---- Финальная стадия (Production) ----
-FROM node:18-alpine AS production
-# Устанавливаем рабочую директорию
-WORKDIR /usr/src/app
-
-# Устанавливаем переменную окружения PORT. Railway может предоставлять свой порт.
-# NestJS по умолчанию использует 3000. Если Railway предоставляет PORT, приложение должно его слушать.
+# Set production environment
 ENV NODE_ENV=production
-# ENV PORT=3000 # Вы можете установить порт по умолчанию здесь, если Railway его не переопределит
 
-# Копируем собранное приложение из стадии 'builder'
-COPY --from=builder /usr/src/app/dist ./dist
 
-# Копируем node_modules (только производственные) из стадии 'prod-deps'
-COPY --from=prod-deps /usr/src/app/node_modules ./node_modules
+# Throw-away build stage to reduce size of final image
+FROM base as build
 
-# Копируем package.json (может быть нужен для некоторых библиотек или для запуска скриптов)
-COPY package*.json ./
+# Install packages needed to build node modules
+RUN apt-get update -qq && \
+    apt-get install -y python-is-python3 pkg-config build-essential
 
-# Railway автоматически определяет порт из EXPOSE или переменной PORT.
-# EXPOSE ${PORT:-3000} # Можно использовать переменную окружения PORT или значение по умолчанию
-EXPOSE 3000 # Или просто укажите порт, на котором ваше приложение слушает по умолчанию
+# Install node modules
+COPY --link package-lock.json package.json ./
+RUN npm ci --include=dev
 
-# Команда для запуска приложения
-# Убедитесь, что 'main.js' это ваш главный файл после сборки
-CMD ["node", "dist/main.js"]
+# Copy application code
+COPY --link . .
+
+# Build application
+RUN npm run build
+
+# Final stage for app image
+FROM base
+
+# Copy built application
+COPY --from=build /src /src
+
+# Start the server by default, this can be overwritten at runtime
+EXPOSE 3000
+CMD [ "npm", "run", "start:migrate:prod" ]
