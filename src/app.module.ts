@@ -60,7 +60,7 @@ import { CompanyModule } from './company/company.module';
           password: dbPassword,
           database: dbName,
           autoLoadEntities: true,
-          synchronize: configService.get<string>('NODE_ENV') === 'development',
+          synchronize: true,
         };
       },
       inject: [ConfigService],
