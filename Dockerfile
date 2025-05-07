@@ -31,6 +31,6 @@ FROM base
 
 COPY --from=build /src /src
 
-EXPOSE 8080  # Change port to 8080
+EXPOSE 8080
 
 CMD [ "npm", "run", "start:prod" ]
