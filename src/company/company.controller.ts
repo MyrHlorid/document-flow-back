@@ -1,10 +1,10 @@
-import { Controller, Post, Body, Param, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Param, Get, UseGuards, Put, Delete } from '@nestjs/common';
 import { CompanyService } from './company.service';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { InvitationStatus } from './invitation.entity';
-import { User } from '../auth/user.entity';
+import { Role, User } from '../auth/user.entity';
 import { CompanyCreateDto } from "./dto/companyCreateDto";
 
 @ApiTags('Company')
@@ -111,6 +111,93 @@ export class CompanyController {
   ) {
     return this.companyService.sendInvitation(companyId, userId, currentUser);
   }
+
+  @ApiOperation({
+    summary: 'Get all users in the company',
+    description: 'This endpoint returns all users belonging to a specific company.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of users in the company.',
+  })
+  @ApiParam({
+    name: 'companyId',
+    description: 'ID of the company',
+    type: Number,
+  })
+  @Get(':companyId/users')
+  @UseGuards(JwtAuthGuard)
+  async getUsersInCompany(@Param('companyId') companyId: number) {
+    return this.companyService.getUsersInCompany(companyId);
+  }
+
+  @ApiOperation({
+    summary: 'Edit user role in company',
+    description: 'This endpoint allows an authorized user to edit a specific user\'s role in a company.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User role successfully updated.',
+  })
+  @ApiParam({
+    name: 'companyId',
+    description: 'ID of the company',
+    type: Number,
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'ID of the user whose role will be updated',
+    type: Number,
+  })
+  @ApiBody({
+    description: 'The new role of the user',
+    type: String,
+    enum: [Role.ADMIN, Role.SUPER_MANAGER, Role.MANAGER, Role.EMPLOYEE],
+  })
+  @Put(':companyId/users/:userId/role')
+  @UseGuards(JwtAuthGuard)
+  async updateUserRole(
+    @Param('companyId') companyId: number,
+    @Param('userId') userId: number,
+    @Body() body: { role: Role },
+    @CurrentUser() currentUser: User
+  ) {
+    return this.companyService.updateUserRole(companyId, userId, body.role, currentUser);
+  }
+
+
+  @ApiOperation({
+    summary: 'Remove a user from the company',
+    description: 'This endpoint allows the company creator or a super manager to remove a user from the company.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User successfully removed from the company.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden. Only the company creator or super manager can perform this action.',
+  })
+  @ApiParam({
+    name: 'companyId',
+    description: 'ID of the company',
+    type: Number,
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'ID of the user to be removed',
+    type: Number,
+  })
+  @Delete(':companyId/users/:userId')
+  @UseGuards(JwtAuthGuard)
+  async removeUserFromCompany(
+    @Param('companyId') companyId: number,
+    @Param('userId') userId: number,
+    @CurrentUser() currentUser: User
+  ) {
+    return this.companyService.removeUserFromCompany(companyId, userId, currentUser);
+  }
+
 
   @Post('invitation/:invitationId/respond')
   @ApiOperation({

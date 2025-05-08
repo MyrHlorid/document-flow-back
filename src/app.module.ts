@@ -6,12 +6,14 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { DocumentModule } from './documents/document.module';
 import { CompanyModule } from './company/company.module';
+import { RequestModule } from "./request/request.module";
 
 @Module({
   imports: [
     AuthModule,
     DocumentModule,
     CompanyModule,
+    RequestModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

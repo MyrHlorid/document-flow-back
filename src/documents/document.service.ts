@@ -336,4 +336,17 @@ export class DocumentService {
     return response.output_text;
   }
 
+  async getLastDocumentsByUser(userId: number): Promise<Document[]> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return this.documentRepository.find({
+      where: { created_by: user },
+      order: { created_at: 'DESC' },
+      take: 3,
+    });
+  }
+
 }

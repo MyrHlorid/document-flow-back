@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany, CreateDateColumn } from 'typeorm';
 import { User } from '../auth/user.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { Approval } from "../approval/approvel.entity";
@@ -43,6 +43,10 @@ export class Document {
   @JoinColumn({ name: 'updated_by' })
   @ApiProperty({ description: 'User who updated or signed the document', type: () => User, nullable: true })
   updated_by: User;
+
+  @CreateDateColumn()
+  @ApiProperty({ description: 'Date when the document was created' })
+  created_at: Date;
 
   @OneToMany(() => Approval, (approval) => approval.document)
   approvals: Approval[];

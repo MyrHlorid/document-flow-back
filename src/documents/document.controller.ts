@@ -71,6 +71,14 @@ export class DocumentController {
     return this.documentService.getAllDocumentsByUser(req.user.userId);
   }
 
+  @ApiOperation({ summary: 'Get last 3 documents created by current user' })
+  @ApiResponse({ status: 200, description: 'List of last 3 documents', type: [Document] })
+  @Get('user/last/3')
+  @UseGuards(AuthGuard('jwt'))
+  async getLastDocumentsOfCurrentUser(@Request() req: any) {
+    return this.documentService.getLastDocumentsByUser(req.user.userId);
+  }
+
   @ApiOperation({ summary: 'Get all documents of a user' })
   @ApiResponse({ status: 200, description: 'List of documents', type: [Document] })
   @ApiResponse({ status: 404, description: 'User not found' })
