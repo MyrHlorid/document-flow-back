@@ -84,4 +84,25 @@ export class RequestService {
     request.status = 'SIGNED';
     return await this.requestRepository.save(request);
   }
+
+  async declineRequest(requestId: number): Promise<Request> {
+    const request = await this.requestRepository.findOne({
+      where: { id: requestId },
+      relations: ['receiver', 'document'],
+    });
+
+    if (!request) {
+      throw new Error('Request not found');
+    }
+
+    if (request.status !== 'PENDING') {
+      throw new Error('Only pending requests can be declined');
+    }
+
+    request.status = 'DECLINED';
+    return await this.requestRepository.save(request);
+  }
+
 }
+
+

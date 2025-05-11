@@ -57,4 +57,12 @@ export class RequestController {
   async signDocument(@Param('requestId') requestId: number, @Body() body: { userId: number }) {
     return this.requestService.signDocument(requestId, body.userId);
   }
+
+  @Post('decline/:requestId')
+  @ApiOperation({ summary: 'Decline a request' })
+  @ApiResponse({ status: 200, description: 'Request declined', type: RequestEntity })
+  @UseGuards(JwtAuthGuard)
+  async declineRequest(@Param('requestId') requestId: number) {
+    return this.requestService.declineRequest(requestId);
+  }
 }
