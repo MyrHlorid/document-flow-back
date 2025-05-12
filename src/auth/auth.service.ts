@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { HttpException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -18,6 +18,15 @@ export class AuthService {
     firstName: string,
     lastName: string,
   ): Promise<User> {
+    const existing = await this.userRepository.findOne({ where: { email } });
+
+    if (existing) {
+      throw new HttpException(
+        { message: 'Пользователь с таким email уже существует' },
+        400,
+      );
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = this.userRepository.create({
       email,
@@ -25,6 +34,7 @@ export class AuthService {
       firstName,
       lastName,
     });
+
     return this.userRepository.save(newUser);
   }
 
